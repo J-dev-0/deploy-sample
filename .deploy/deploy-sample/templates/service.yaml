@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: deploy-sample-service
+  labels:
+    app: deploy-sample
+    service: deploy-sample
+spec:
+  selector:
+    app: deploy-sample
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: ClusterIP
