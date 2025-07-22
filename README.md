@@ -16,43 +16,66 @@ Run this command: ``` sudo snap install helmfile-snap ```
 ### Setup Code
 1. Build the code container:
 Run this command
-```podman build -f Dockerfile -t deploy-sample:latest```
+```podman build -f ./applications/backend/Dockerfile -t deploy-sample:latest```   
 OR:
-Use the podman UI: [Link]https://podman-desktop.io/docs/containers/images/building-an-image.   
+Use the podman UI: [Link](https://podman-desktop.io/docs/containers/images/building-an-image).   
 **Note:** For the name use `deploy-sample`
 2. Push image to minikube. [Link](https://podman-desktop.io/docs/minikube/pushing-aben-image-to-minikube).  
-This will be replaced with push to cloud specific container repository (ECR/GCR/GHCR\Docker Hub) later, for local we follow this step.
-3. Sync the helmfile to deploy istio services and the app automatically.   
+**Note:** This will be replaced with push to cloud specific container repository (ECR/GCR/GHCR/Docker Hub) later, for local we follow this step.
+3. Sync the helmfile to deploy istio services and the app automatically.
 Run the following command: ```helmfile -f .deploy/helmfile.yaml sync```.  
 It should give an output similar to this:
-```
-UPDATED RELEASES:
-NAME            NAMESPACE       CHART             VERSION   DURATION
-deploy-sample   deploy-sample   ./deploy-sample   0.1.0           0s
-istio-base      istio-system    istio/base        1.26.2          2s
-istiod          istio-system    istio/istiod      1.26.2          1s
-```
+    ```
+    UPDATED RELEASES:
+    NAME            NAMESPACE       CHART             VERSION   DURATION
+    deploy-sample   deploy-sample   ./deploy-sample   0.1.0           0s
+    istio-base      istio-system    istio/base        1.26.2          2s
+    istiod          istio-system    istio/istiod      1.26.2          1s
+    ```
 
-3.1 **(Optional)** Check deployed images using helm:
+    -  **(Optional)** Check deployed images using helm:
 
-Check in istio-system namespace: ```helm ls -n istio-system```.  
-Output:
-```
-NAME            NAMESPACE       REVISION        UPDATED                                 STATUS          CHART           APP VERSION
-istio-base      istio-system    4               2025-07-21 00:40:53.742073 +0530 IST    deployed        base-1.26.2     1.26.2     
-istiod          istio-system    4               2025-07-21 00:40:56.617779 +0530 IST    deployed        istiod-1.26.2   1.26.2
-```
-Check in deploy-sample namespace: ```helm ls -n deploy-sample```.  
-Output:
-```
-NAME            NAMESPACE       REVISION        UPDATED                                 STATUS          CHART                   APP VERSION
-deploy-sample   deploy-sample   4               2025-07-21 00:40:52.620737 +0530 IST    deployed        deploy-sample-0.1.0     1.16.0   
-```
-From her you can look at the pods and service logs from the podman UI.
+        Check in istio-system namespace: ```helm ls -n istio-system```.  
+        Output:
+        ```
+        NAME            NAMESPACE       REVISION        UPDATED                                 STATUS          CHART           APP VERSION
+        istio-base      istio-system    4               2025-07-21 00:40:53.742073 +0530 IST    deployed        base-1.26.2     1.26.2     
+        istiod          istio-system    4               2025-07-21 00:40:56.617779 +0530 IST    deployed        istiod-1.26.2   1.26.2
+        ```
+        Check in deploy-sample namespace: ```helm ls -n deploy-sample```.  
+        Output:
+        ```
+        NAME            NAMESPACE       REVISION        UPDATED                                 STATUS          CHART                   APP VERSION
+        deploy-sample   deploy-sample   4               2025-07-21 00:40:52.620737 +0530 IST    deployed        deploy-sample-0.1.0     1.16.0   
+        ```
 
-For now this is the progress.
+4. Setup Kubernetes gateway and virtual services to start routing the traffic.
+Run: ```kubectl apply -f .deploy/istio/``` 
 
+5. Test with browser or curl:   
+    - Get the Ingress gateway tunnel running for minikube.   
+        In another terminal run: ```minikube tunnel```   
+        This open the minikube network oprn to the system network, keep this terminal open and running.
+    - Get the ingress gateway IP and PORT.
+        Run these lines in terminal to get the values.
+        ```bash
+        export INGRESS_HOST=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+        
+        export INGRESS_PORT=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="http2")].port}')
+        
+        export SECURE_INGRESS_PORT=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="https")].port}')
+        ```
+    - API call to test:
+        ```bash
+        curl "http://${INGRESS_HOST}:${INGRESS_PORT}/health"
+        ```
+        Or get the IP:PORT and open in browser:
+        ```bash
+        echo $INGRESS_HOST:$INGRESS_PORT
+        ```
+        ```http
+        http://{HOST}:{PORT}/health
+        ```
 
 ### TODO:
-Set up ingress gateway to route traffic from outside world to services and monitoring
-And set up Mesh for internal traffic routing.
+Set up Mesh for internal traffic routing.
