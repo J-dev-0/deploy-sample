@@ -1,0 +1,24 @@
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: deploy-sample-gateway
+  namespace: default
+spec:
+  selector:
+    istio: ingressgateway # use the default istio ingress gateway
+  servers:
+    - port:
+        number: 80
+        name: http
+        protocol: HTTP
+      hosts:
+        - "*"
+    # - port:
+    #     number: 443
+    #     name: https
+    #     protocol: HTTPS
+    #   tls:
+    #     mode: SIMPLE
+    #     credentialName: deploy-sample-tls # must match your TLS secret name
+    #   hosts:
+    #     - deploy-sample.com

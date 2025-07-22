@@ -15,23 +15,24 @@ spec:
     metadata:
       labels:
         app: deploy-sample
-        sidecar.istio.io/inject: "true"
+    annotations:
+      sidecar.istio.io/inject: "True"
     spec:
       containers:
-      - name: sample-deploy-container
-        image: docker.io/library/deploy-sample:latest
-        imagePullPolicy: IfNotPresent
-        ports:
-        - containerPort: 80
-        readinessProbe:
-          httpGet:
-            path: /
-            port: 80
-          initialDelaySeconds: 5
-          periodSeconds: 10
-        livenessProbe:
-          httpGet:
-            path: /
-            port: 80
-          initialDelaySeconds: 15
-          periodSeconds: 20
+        - name: sample-deploy-container
+          image: docker.io/library/deploy-sample:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 15
+            periodSeconds: 20

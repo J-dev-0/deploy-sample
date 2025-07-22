@@ -18,7 +18,6 @@ repositories:
     url: https://grafana.github.io/helm-charts
   - name: kiali
     url: https://kiali.org/helm-charts
-
 ---
 releases:
   - name: istio-base
@@ -27,7 +26,7 @@ releases:
     chart: istio/base
     version: 1.26
     values:
-    - defaultRevision: default
+      - defaultRevision: default
   - name: istiod
     namespace: istio-system
     createNamespace: true
@@ -35,12 +34,23 @@ releases:
     version: 1.26
     installed: true # Ensure this is true to actually install the chart
     needs:
-    - istio-system/istio-base
+      - istio-system/istio-base
   - name: deploy-sample # name of the release
     chart: ./deploy-sample # path to the chart
     namespace: deploy-sample # target namespace
     createNamespace: true # create namespace if it does not exist
     installed: true
+    version: 0.1.0 # version of the chart
+    values:
+      - resources:
+          metadata:
+            labels:
+              name: deploy-sample
+              version: 0.1.0
+              istio-injection: enabled # enable automatic sidecar injection
+              grafana.enabled: true # enable Grafana integration
+              kiali.enabled: true # enable Kiali integration
+              tracing.enabled: true # enable tracing
   - name: prometheus
     namespace: monitoring
     createNamespace: true
@@ -49,16 +59,64 @@ releases:
       - prometheus:
           prometheusSpec:
             serviceMonitorSelectorNilUsesHelmValues: false
+      - resources:
+          metadata:
+            labels:
+              name: prometheus
+              istio-injection: enabled
+              grafana.enabled: true
+              kiali.enabled: true
+              tracing.enabled: true
+          annotations:
+            sidecar.istio.io/inject: "True"
   - name: grafana
     namespace: monitoring
     version: 9.2.10
     createNamespace: true
     chart: grafana/grafana
     values:
-      - persistence:
-          enabled: true
-          size: 10Gi
       - adminPassword: "admin" # Set your Grafana admin password here
+      - resources:
+          metadata:
+            labels:
+              name: grafana
+              istio-injection: enabled
+          annotations:
+            sidecar.istio.io/inject: "True"
   - name: kiali
-    namespace: monitoring
+    namespace: istio-system
     chart: kiali/kiali-server
+    values:
+      - resources:
+          metadata:
+            labels:
+              name: kiali
+              istio-injection: enabled
+              grafana.enabled: true
+              kiali.enabled: true
+              tracing.enabled: true
+      # - external_services:
+      #     grafana:
+      #       enabled: true
+      #       in_cluster_url: "http://grafana.monitoring.svc.cluster.local:3000"
+      #     prometheus:
+      #       enabled: true
+      #       url: "http://prometheus-server.monitoring.svc.cluster.local:9090"
+  - name: istio-ingressgateway
+    namespace: istio-system
+    createNamespace: true
+    chart: istio/gateway
+    version: 1.26
+    values:
+      - labels:
+          istio: ingressgateway
+      - service:
+          type: LoadBalancer
+      - resources:
+          metadata:
+            labels:
+              name: istio-ingressgateway
+              istio-injection: enabled
+              grafana.enabled: true
+              kiali.enabled: true
+              tracing.enabled: true

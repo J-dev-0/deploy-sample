@@ -1,0 +1,33 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: deploy-sample
+  namespace: deploy-sample
+spec:
+  hosts:
+    - "*"
+  gateways:
+    - default/deploy-sample-gateway
+  http:
+    - match:
+        - uri:
+            prefix: /app/items/
+      rewrite:
+        uri: /items/
+      route:
+        - destination:
+            host: deploy-sample-service.deploy-sample.svc.cluster.local
+            port:
+              number: 80
+    - match:
+        - uri:
+            prefix: /app/
+        - uri:
+            prefix: /app
+      rewrite:
+        uri: /
+      route:
+        - destination:
+            host: deploy-sample-service.deploy-sample.svc.cluster.local
+            port:
+              number: 80
